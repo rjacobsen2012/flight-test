@@ -71,7 +71,7 @@ class Flight
             return ['error' => 'Flight uuid not found'];
         }
 
-        list($flightEndpoints, $flightPath, $distance) = $this->getFlightEndpoints($flight);
+        list($flightEndpoints, $flightPath, $distance, $address) = $this->getFlightEndpoints($flight);
 
         return [
             'uuid' => $flight->uuid,
@@ -79,6 +79,7 @@ class Flight
             'battery_details' => $this->getBatteryDetails($flight->drone),
             'flight_path' => $flightPath,
             'distance' => $distance,
+            'address' => $address,
         ];
     }
 
@@ -285,6 +286,30 @@ class Flight
     }
 
     /**
+     * @param GpsFrame $startFrame
+     * @return mixed
+     */
+    protected function getAddress(GpsFrame $startFrame)
+    {
+        $client = new Client();
+        $address = null;
+
+        try {
+            $response = $client->request(
+                'GET',
+                "http://api.geonames.org/extendedFindNearby?lat={$startFrame->lat}&lng={$startFrame->long}&username=rjacobsen",
+                [
+                    'headers' => ['Accept' => 'application/json','Content-type' => 'application/json']
+                ]);
+            $responseData = json_decode($response->getBody()->getContents());
+            $address = (array) $responseData->address;
+        } catch (GuzzleException $e) {
+        }
+
+        return $address;
+    }
+
+    /**
      * @param FlightModel $flight
      * @return array
      */
@@ -294,6 +319,8 @@ class Flight
 
         $endpoints = new Collection();
         $distances = new Collection();
+
+        $address = $this->getAddress($flight->gpsFramesFirst->first());
 
         $flight->gpsFramesFirst->each(function (GpsFrame $gpsFrame) use (&$flightEndpoints, &$endpoints, &$distances) {
             $point = new Point([$gpsFrame->long, $gpsFrame->lat]);
@@ -313,7 +340,7 @@ class Flight
         return [$flightEndpoints, [
             'type' => 'LineString',
             'coordinates' => array_values($endpoints->unique()->toArray())
-        ], $this->getDistance($distances)];
+        ], $this->getDistance($distances), $address];
     }
 
     /**
