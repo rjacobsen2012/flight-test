@@ -14,17 +14,14 @@ use Illuminate\Support\Collection;
  * @package App\Models
  *
  * @property int id
- * @property string uuid
  * @property string aircraft_name
  * @property string aircraft_sn
  * @property int battery_id
  * @property Carbon created_at
  * @property Carbon updated_at
  *
+ * @property Collection|Flight[] flights
  * @property Collection|Battery[] batteries
- * @property Collection|GpsFrame[] gpsFrames
- * @property Collection|GpsFrame[] gpsFramesFirst
- * @property Collection|GpsFrame[] gpsFramesLast
  */
 class Drone extends Model
 {
@@ -33,32 +30,16 @@ class Drone extends Model
     /**
      * @return HasMany
      */
+    public function flights()
+    {
+        return $this->hasMany(Flight::class);
+    }
+
+    /**
+     * @return HasMany
+     */
     public function batteries()
     {
         return $this->hasMany(Battery::class);
-    }
-
-    /**
-     * @return HasMany
-     */
-    public function gpsFrames()
-    {
-        return $this->hasMany(GpsFrame::class);
-    }
-
-    /**
-     * @return HasMany
-     */
-    public function gpsFramesFirst()
-    {
-        return $this->hasMany(GpsFrame::class)->orderedFirst();
-    }
-
-    /**
-     * @return HasMany
-     */
-    public function gpsFramesLast()
-    {
-        return $this->hasMany(GpsFrame::class)->orderedLast();
     }
 }

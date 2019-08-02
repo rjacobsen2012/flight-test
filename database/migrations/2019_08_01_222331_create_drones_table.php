@@ -16,7 +16,6 @@ class CreateDronesTable extends Migration
         if (!Schema::hasTable('drones')) {
             Schema::create('drones', function (Blueprint $table) {
                 $table->bigIncrements('id');
-                $table->string('uuid');
                 $table->string('aircraft_name');
                 $table->string('aircraft_sn');
                 $table->timestamps();

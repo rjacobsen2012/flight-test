@@ -5,6 +5,7 @@ namespace App\Libraries;
 use App\Models\Battery;
 use App\Models\BatteryFrame;
 use App\Models\Drone;
+use App\Models\Flight as FlightModel;
 use App\Models\GpsFrame;
 use Carbon\Carbon;
 use GeoJson\Geometry\Point;
@@ -20,9 +21,13 @@ class Flight
      */
     public function save(Request $request)
     {
-        $drone = $this->getDrone($request);
+        /**
+         * @var FlightModel $flight
+         * @var Drone $drone
+         */
+        list($flight, $drone) = $this->getFlight($request);
         $batteries = $this->addBatteries($request, $drone);
-        $this->addFrames($request, $batteries, $drone);
+        $this->addFrames($request, $batteries, $flight);
     }
 
     /**
@@ -31,16 +36,23 @@ class Flight
      */
     public function show($uuid)
     {
-        $drone = Drone::where('uuid', $uuid)->first();
-        list($point, $duration, $countryOfFlight) = $this->getPointDurationCountry($drone);
+        /** @var FlightModel $flight */
+        $flight = FlightModel::where('uuid', $uuid)->first();
+
+        if (!$flight) {
+            return ['error' => 'Flight uuid not found'];
+        }
+
+        $drone = $flight->drone;
+        list($point, $duration, $countryOfFlight) = $this->getPointDurationCountry($flight);
         $batteries = $this->getDroneBatteries($drone);
 
         return [
-            'uuid' => $drone->uuid,
-            'home_point' => $point,
-            'flight_duration' => $duration,
+            'uuid' => $flight->uuid,
             'aircraft_name' => $drone->aircraft_name,
             'aircraft_sn' => $drone->aircraft_sn,
+            'home_point' => $point,
+            'flight_duration' => $duration,
             'batteries' => $batteries,
             'country' => $countryOfFlight
         ];
@@ -52,13 +64,21 @@ class Flight
      */
     public function showDetail($uuid)
     {
-        /** @var Drone $drone */
-        $drone = Drone::where('uuid', $uuid)->first();
+        /** @var FlightModel $flight */
+        $flight = FlightModel::where('uuid', $uuid)->first();
+
+        if (!$flight) {
+            return ['error' => 'Flight uuid not found'];
+        }
+
+        list($flightEndpoints, $flightPath, $distance) = $this->getFlightEndpoints($flight);
 
         return [
-            'uuid' => $drone->uuid,
-            'endpoints' => $this->getFlightEndpoints($drone),
-            'battery_details' => $this->getBatteryDetails($drone),
+            'uuid' => $flight->uuid,
+            'flight_endpoints' => $flightEndpoints,
+            'battery_details' => $this->getBatteryDetails($flight->drone),
+            'flight_path' => $flightPath,
+            'distance' => $distance,
         ];
     }
 
@@ -67,8 +87,8 @@ class Flight
      */
     public function list()
     {
-        return Drone::all()->map(function (Drone $drone) {
-            return $this->show($drone->uuid);
+        return FlightModel::all()->map(function (FlightModel $flight) {
+            return $this->show($flight->uuid);
         });
     }
 
@@ -77,9 +97,28 @@ class Flight
      */
     public function listDetail()
     {
-        return Drone::all()->map(function (Drone $drone) {
-            return $this->showDetail($drone->uuid);
+        return FlightModel::all()->map(function (FlightModel $flight) {
+            return $this->showDetail($flight->uuid);
         });
+    }
+
+    /**
+     * @param Request $request
+     * @return array
+     */
+    protected function getFlight(Request $request)
+    {
+        /** @var FlightModel $flight */
+        $flight = FlightModel::where('uuid', $request->json('uuid'))->first();
+        $drone = $this->getDrone($request);
+
+        if (!$flight) {
+            $flight = $drone->flights()->create([
+                'uuid' => $request->json('uuid'),
+            ]);
+        }
+
+        return [$flight, $drone];
     }
 
     /**
@@ -89,11 +128,10 @@ class Flight
     protected function getDrone(Request $request): Drone
     {
         /** @var Drone $drone */
-        $drone = Drone::where('uuid', $request->json('uuid'))->first();
+        $drone = Drone::where('aircraft_sn', $request->json('aircraft_sn'))->first();
 
         if (!$drone) {
             $drone = Drone::create([
-                'uuid' => $request->json('uuid'),
                 'aircraft_name' => $request->json('aircraft_name'),
                 'aircraft_sn' => $request->json('aircraft_sn')
             ]);
@@ -139,9 +177,9 @@ class Flight
     /**
      * @param Request $request
      * @param array $batteries
-     * @param Drone $drone
+     * @param FlightModel $flight
      */
-    protected function addFrames(Request $request, array $batteries, Drone $drone): void
+    protected function addFrames(Request $request, array $batteries, FlightModel $flight): void
     {
         foreach ($request->json('frames') as $frame) {
             $seconds = $frame['timestamp'] / 1000;
@@ -151,7 +189,7 @@ class Flight
                     $this->addBatteryFrame($frame, $batteries, $timestamp);
                     break;
                 case 'gps':
-                    $this->addGpsFrame($drone, $frame, $timestamp);
+                    $this->addGpsFrame($flight, $frame, $timestamp);
                     break;
             }
         }
@@ -174,13 +212,13 @@ class Flight
     }
 
     /**
-     * @param Drone $drone
+     * @param FlightModel $flight
      * @param $frame
      * @param Carbon $timestamp
      */
-    protected function addGpsFrame(Drone $drone, $frame, Carbon $timestamp): void
+    protected function addGpsFrame(FlightModel $flight, $frame, Carbon $timestamp): void
     {
-        $drone->gpsFrames()->create([
+        $flight->gpsFrames()->create([
             'timestamp' => $timestamp,
             'lat' => $frame['lat'],
             'long' => $frame['long'],
@@ -189,17 +227,17 @@ class Flight
     }
 
     /**
-     * @param Drone $drone
+     * @param FlightModel $flight
      * @return array
      */
-    protected function getPointDurationCountry(Drone $drone): array
+    protected function getPointDurationCountry(FlightModel $flight): array
     {
         /** @var GpsFrame $startFrame */
-        $startFrame = $drone->gpsFramesFirst->first();
+        $startFrame = $flight->gpsFramesFirst->first();
         $point = $startFrame ? new Point([$startFrame->lat, $startFrame->long]) : null;
 
         /** @var GpsFrame $lastFrame */
-        $lastFrame = $drone->gpsFramesLast->first();
+        $lastFrame = $flight->gpsFramesLast->first();
 
         $countryOfFlight = $startFrame ? $this->getCountry($startFrame) : null;
 
@@ -237,7 +275,7 @@ class Flight
 
         try {
             $response = $client->request('GET',
-                "http://api.geonames.org/countryCodeJSON?lat={$startFrame->lat}&lng={$startFrame->lat}&username=rjacobsen");
+                "http://api.geonames.org/countryCodeJSON?lat={$startFrame->lat}&lng={$startFrame->long}&username=rjacobsen");
             $responseData = json_decode($response->getBody()->getContents());
             $countryOfFlight = $responseData->countryName;
         } catch (GuzzleException $e) {
@@ -247,23 +285,35 @@ class Flight
     }
 
     /**
-     * @param Drone $drone
+     * @param FlightModel $flight
      * @return array
      */
-    protected function getFlightEndpoints(Drone $drone): array
+    protected function getFlightEndpoints(FlightModel $flight): array
     {
         $flightEndpoints = [];
 
-        $drone->gpsFramesFirst->each(function (GpsFrame $gpsFrame) use (&$flightEndpoints) {
-            $point = new Point([$gpsFrame->lat, $gpsFrame->long]);
+        $endpoints = new Collection();
+        $distances = new Collection();
+
+        $flight->gpsFramesFirst->each(function (GpsFrame $gpsFrame) use (&$flightEndpoints, &$endpoints, &$distances) {
+            $point = new Point([$gpsFrame->long, $gpsFrame->lat]);
             $flightEndpoints[] = [
                 'timestamp' => strtotime($gpsFrame->timestamp->toDateTimeLocalString()) * 1000,
                 'type' => $point->getType(),
                 'coordinates' => $point->getCoordinates(),
             ];
+            $endpoints->push([$gpsFrame->long, $gpsFrame->lat]);
+            $distances->push([
+                'timestamp' => $gpsFrame->timestamp,
+                'lat' => $gpsFrame->lat,
+                'long' => $gpsFrame->long,
+            ]);
         });
 
-        return $flightEndpoints;
+        return [$flightEndpoints, [
+            'type' => 'LineString',
+            'coordinates' => array_values($endpoints->unique()->toArray())
+        ], $this->getDistance($distances)];
     }
 
     /**
@@ -313,5 +363,52 @@ class Flight
         });
 
         return array($batteryTemperatures, $batteryPercents);
+    }
+
+    /**
+     * @param $lat1
+     * @param $lon1
+     * @param $lat2
+     * @param $lon2
+     * @return float|int
+     */
+    protected function distanceCalculator($lat1, $lon1, $lat2, $lon2)
+    {
+        if (($lat1 === $lat2) && ($lon1 === $lon2)) {
+            return 0;
+        }
+
+        else {
+            $theta = $lon1 - $lon2;
+            $dist = sin(deg2rad($lat1)) * sin(deg2rad($lat2)) +  cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * cos(deg2rad($theta));
+            $dist = acos($dist);
+            $dist = rad2deg($dist);
+            $miles = $dist * 60 * 1.1515;
+            $kilometers = $miles * 1.609344;
+            $meters = $kilometers * 1000;
+
+            return $meters;
+        }
+    }
+
+    /**
+     * @param Collection $distances
+     * @return float|int
+     */
+    protected function getDistance(Collection $distances)
+    {
+        $distance = 0;
+
+        foreach ($distances as $key => $data) {
+            if ($key) {
+                $distance += $this->distanceCalculator(
+                    $distances[$key - 1]['lat'],
+                    $distances[$key - 1]['long'],
+                    $data['lat'],
+                    $data['long']
+                );
+            }
+        }
+        return $distance;
     }
 }
