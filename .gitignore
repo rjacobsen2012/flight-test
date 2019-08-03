@@ -21,3 +21,6 @@ config.yaml
 !/resources/assets/js/app.js
 /public/mix-manifest.json
 package-lock.json
+/setup
+Vagrantfile
+ubuntu*
