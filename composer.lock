@@ -4,8 +4,61 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "fecfee92106573eb5b5227104b1c4aa4",
+    "content-hash": "c88beb40da0cfec6d8ac21cb7de8c86b",
     "packages": [
+        {
+            "name": "anthonymartin/geo-location",
+            "version": "v2.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/anthonymartin/GeoLocation-PHP.git",
+                "reference": "dade8177d4d0fa9349602ed81f3af2f6c988e0b8"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/anthonymartin/GeoLocation-PHP/zipball/dade8177d4d0fa9349602ed81f3af2f6c988e0b8",
+                "reference": "dade8177d4d0fa9349602ed81f3af2f6c988e0b8",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.4.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^7"
+            },
+            "type": "class",
+            "autoload": {
+                "psr-0": {
+                    "AnthonyMartin": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Anthony Martin",
+                    "role": "Developer",
+                    "email": "anthony@replaycreative.com",
+                    "homepage": "http://replaycreative.com"
+                }
+            ],
+            "description": "Powerful GeoCoding library: Retrieve bounding box coordinates, distances between geopoints, point in polygon, get longitude and latitude from addresses and more with GeoLocation for PHP",
+            "homepage": "https://github.com/anthonymartin/GeoLocation-PHP",
+            "keywords": [
+                "bounding box coordinates",
+                "bounding coordinates",
+                "distances",
+                "geocode",
+                "geocoding",
+                "geolocation",
+                "latitude",
+                "longitude",
+                "point in polygon"
+            ],
+            "time": "2019-06-27T00:08:38+00:00"
+        },
         {
             "name": "barryvdh/laravel-ide-helper",
             "version": "v2.6.2",
@@ -1188,6 +1241,56 @@
             ],
             "description": "Highlight PHP code in terminal",
             "time": "2018-09-29T18:48:56+00:00"
+        },
+        {
+            "name": "jeroendesloovere/geolocation-php-api",
+            "version": "2.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/jeroendesloovere/geolocation-php-api.git",
+                "reference": "3712172ee434bad4f14abd64a10444a775fd7086"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/jeroendesloovere/geolocation-php-api/zipball/3712172ee434bad4f14abd64a10444a775fd7086",
+                "reference": "3712172ee434bad4f14abd64a10444a775fd7086",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.1"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^7.0",
+                "squizlabs/php_codesniffer": "^3.2"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "JeroenDesloovere\\Geolocation\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Jeroen Desloovere",
+                    "role": "Developer",
+                    "email": "info@jeroendesloovere.be",
+                    "homepage": "http://jeroendesloovere.be"
+                }
+            ],
+            "description": "This Geolocation PHP class connects to Google Maps API to find latitude/longitude or address.",
+            "homepage": "https://github.com/jeroendesloovere/geolocation-php-api",
+            "keywords": [
+                "api",
+                "geolocation",
+                "google",
+                "maps",
+                "php"
+            ],
+            "time": "2018-04-13T08:50:24+00:00"
         },
         {
             "name": "jmikola/geojson",
@@ -6372,7 +6475,8 @@
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
-        "php": "^7.1.3"
+        "php": "^7.1.3",
+        "ext-json": "^1.7"
     },
     "platform-dev": []
 }

@@ -2,31 +2,35 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Libraries\Flight;
+use App\Libraries\FlightDetailLibrary;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 
+/**
+ * Class FlightDetailController
+ * @package App\Http\Controllers\Api
+ */
 class FlightDetailController extends Controller
 {
     /**
      * Display a listing of the resource.
-     * @param Flight $flight
+     * @param FlightDetailLibrary $flightDetailLibrary
      * @return JsonResponse
      */
-    public function index(Flight $flight)
+    public function index(FlightDetailLibrary $flightDetailLibrary)
     {
-        return response()->json($flight->listDetail());
+        return response()->json($flightDetailLibrary->getAll());
     }
 
     /**
      * Display the specified resource.
      *
      * @param $uuid
-     * @param Flight $flight
+     * @param FlightDetailLibrary $flightDetailLibrary
      * @return JsonResponse
      */
-    public function show($uuid, Flight $flight)
+    public function show($uuid, FlightDetailLibrary $flightDetailLibrary)
     {
-        return response()->json($flight->showDetail($uuid));
+        return response()->json($flightDetailLibrary->get($uuid));
     }
 }
