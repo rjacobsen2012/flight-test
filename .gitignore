@@ -24,3 +24,5 @@ package-lock.json
 /setup
 Vagrantfile
 ubuntu*
+yarn.lock
+composer.lock
